@@ -1,0 +1,185 @@
+# Hospital Management System Configuration
+
+# Application Settings
+app:
+  name: "Hospital Management System"
+  version: "1.0.0"
+  debug: true
+  environment: "development"  # development, production, testing
+
+# Server Configuration
+server:
+  host: "localhost"
+  port: 5000
+  cors_enabled: true
+  allowed_origins:
+    - "http://localhost:5000"
+    - "http://127.0.0.1:5000"
+
+# Database Configuration
+database:
+  type: "sqlite"
+  name: "hospital_management.db"
+  path: "backend/database"
+  backup_enabled: true
+  backup_interval_hours: 24
+  
+# Redis Configuration (Session Management)
+redis:
+  enabled: true
+  host: "localhost"
+  port: 6379
+  db: 0
+  password: null
+  session_timeout_minutes: 60
+  max_connections: 10
+
+# Security Settings
+security:
+  secret_key: "your-secret-key-here-change-in-production"
+  jwt_secret_key: "your-jwt-secret-key-here"
+  password_salt: "your-password-salt-here"
+  session_cookie_secure: false  # Set to true in production with HTTPS
+  session_cookie_httponly: true
+  session_cookie_samesite: "Lax"
+  max_login_attempts: 5
+  lockout_duration_minutes: 30
+
+# API Settings
+api:
+  prefix: ""
+  rate_limit_enabled: false
+  rate_limit_per_minute: 60
+  request_timeout_seconds: 30
+  max_content_length_mb: 16
+
+# User Roles
+roles:
+  admin:
+    name: "Admin"
+    description: "System administrator with full access"
+    permissions:
+      - "manage_doctors"
+      - "manage_patients"
+      - "view_appointments"
+      - "manage_departments"
+      - "blacklist_users"
+  
+  doctor:
+    name: "Doctor"
+    description: "Medical professional"
+    permissions:
+      - "view_appointments"
+      - "manage_appointments"
+      - "add_prescriptions"
+      - "view_patient_history"
+      - "manage_availability"
+  
+  patient:
+    name: "Patient"
+    description: "Patient user"
+    permissions:
+      - "book_appointments"
+      - "view_appointments"
+      - "cancel_appointments"
+      - "view_medical_history"
+      - "update_profile"
+
+# Appointment Settings
+appointments:
+  max_appointments_per_day: 20
+  booking_advance_days: 30
+  cancellation_allowed_hours_before: 24
+  default_duration_minutes: 30
+  statuses:
+    - "Scheduled"
+    - "Completed"
+    - "Cancelled"
+
+# Email Configuration (Optional - for notifications)
+email:
+  enabled: false
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  smtp_user: "your-email@gmail.com"
+  smtp_password: "your-app-password"
+  use_tls: true
+  sender_email: "noreply@hospital.com"
+  sender_name: "Hospital Management System"
+
+# Logging Configuration
+logging:
+  enabled: true
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  log_to_file: true
+  log_file_path: "logs/app.log"
+  max_file_size_mb: 10
+  backup_count: 5
+  log_to_console: true
+
+# File Upload Settings
+uploads:
+  enabled: false
+  allowed_extensions:
+    - "pdf"
+    - "jpg"
+    - "jpeg"
+    - "png"
+  max_file_size_mb: 5
+  upload_folder: "uploads"
+
+# Frontend Settings
+frontend:
+  page_title: "Hospital Management System"
+  items_per_page: 10
+  date_format: "YYYY-MM-DD"
+  time_format: "HH:mm"
+  theme: "default"
+
+# Department Settings
+departments:
+  default_departments:
+    - name: "Cardiology"
+      description: "Heart and cardiovascular system"
+    - name: "Neurology"
+      description: "Brain and nervous system"
+    - name: "Orthopedics"
+      description: "Bones and joints"
+    - name: "Pediatrics"
+      description: "Children's health"
+    - name: "General Medicine"
+      description: "General healthcare"
+
+# Backup & Maintenance
+maintenance:
+  backup_enabled: true
+  backup_schedule: "daily"  # daily, weekly, monthly
+  backup_time: "02:00"  # 24-hour format
+  backup_directory: "backups"
+  retention_days: 30
+  auto_cleanup_enabled: true
+
+# Monitoring & Analytics
+monitoring:
+  enabled: false
+  track_api_calls: true
+  track_user_activity: true
+  performance_monitoring: false
+
+# Feature Flags
+features:
+  doctor_availability_management: true
+  patient_self_registration: true
+  appointment_reminders: false
+  medical_history_tracking: true
+  prescription_management: true
+  blacklist_functionality: true
+  department_management: true
+
+# Development Settings
+development:
+  auto_reload: true
+  show_sql_queries: false
+  mock_data_enabled: false
+  test_mode: false
