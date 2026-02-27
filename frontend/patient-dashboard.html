@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - Hospital Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/session.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .status-scheduled {
+            background-color: #0dcaf0;
+        }
+
+        .status-completed {
+            background-color: #198754;
+        }
+
+        .status-cancelled {
+            background-color: #dc3545;
+        }
+
+        .doctor-card {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .doctor-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg dashboard-header mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1"><i class="bi bi-person-circle"></i> Patient Portal</span>
+                <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> {{ userName }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="#" @click.prevent="goToProfile">
+                                    <i class="bi bi-person-gear"></i> Edit Profile
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" @click.prevent="logout">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="appointments-tab" data-bs-toggle="tab"
+                        data-bs-target="#appointments" type="button" role="tab">
+                        <i class="bi bi-calendar-event"></i> My Appointments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="book-tab" data-bs-toggle="tab" data-bs-target="#book" type="button"
+                        role="tab">
+                        <i class="bi bi-plus-circle"></i> Book Appointment
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile"
+                        type="button" role="tab">
+                        <i class="bi bi-person"></i> My Profile
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history"
+                        type="button" role="tab" @click="loadMedicalHistory">
+                        <i class="bi bi-file-medical"></i> Medical History
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- APPOINTMENTS TAB -->
+                <div class="tab-pane fade show active" id="appointments" role="tabpanel">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-list-ul"></i> My Appointments</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Date & Time</th>
+                                            <th>Doctor</th>
+                                            <th>Specialization</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="apt in appointments" :key="apt.AppointmentID">
+                                            <td>{{ apt.AppointmentID }}</td>
+                                            <td>{{ apt.AppointmentDate }}</td>
+                                            <td>{{ apt.DoctorName }}</td>
+                                            <td>{{ apt.Specialization }}</td>
+                                            <td>
+                                                <span class="badge" :class="'status-' + apt.Status.toLowerCase()">
+                                                    {{ apt.Status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button v-if="apt.Status === 'Scheduled'" class="btn btn-sm btn-danger"
+                                                    @click="cancelAppointment(apt.AppointmentID)">
+                                                    <i class="bi bi-x-circle"></i> Cancel
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOOK APPOINTMENT TAB -->
+                <div class="tab-pane fade" id="book" role="tabpanel">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-search"></i> Search & Select Doctor</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input v-model="doctorSearchQuery" @input="searchDoctors" class="form-control"
+                                        placeholder="Search by name or specialization...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Doctor Cards -->
+                    <div class="row" v-if="!selectedDoctor">
+                        <div class="col-md-4 mb-3" v-for="doctor in searchedDoctors" :key="doctor.DoctorID">
+                            <div class="card doctor-card h-100" @click="selectDoctor(doctor)">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary">
+                                        <i class="bi bi-person-badge"></i> {{ doctor.Name }}
+                                    </h5>
+                                    <p class="card-text mb-1"><strong>Specialization:</strong> {{ doctor.Specialization
+                                        }}</p>
+                                    <p class="card-text mb-1"><strong>Contact:</strong> {{ doctor.Contact }}</p>
+                                    <p class="card-text text-muted"><strong>Email:</strong> {{ doctor.Email }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Booking Form -->
+                    <div v-if="selectedDoctor" class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-calendar-plus"></i> Book Appointment with {{
+                                selectedDoctor.Name }}</h5>
+                            <button class="btn btn-sm btn-secondary" @click="selectedDoctor = null">
+                                <i class="bi bi-arrow-left"></i> Back to Doctors
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Availability Display -->
+                            <div class="mb-4">
+                                <h6 class="text-muted mb-3">Doctor's Availability:</h6>
+                                <div v-if="selectedDoctorAvailability.length === 0" class="alert alert-warning">
+                                    No availability slots set for this doctor.
+                                </div>
+                                <div v-else class="row">
+                                    <div class="col-md-3 mb-2" v-for="slot in selectedDoctorAvailability"
+                                        :key="slot.AvailabilityID">
+                                        <div class="card bg-light">
+                                            <div class="card-body p-2">
+                                                <small><strong>{{ slot.Day }}</strong><br>
+                                                    {{ slot.StartTime }} - {{ slot.EndTime }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Booking Form -->
+                            <form @submit.prevent="bookAppointment">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Appointment Date *</label>
+                                        <input v-model="bookingForm.date" type="date" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Appointment Time (HH:MM) *</label>
+                                        <input v-model="bookingForm.time" type="time" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <small><i class="bi bi-info-circle"></i> Please select a date/time that falls within
+                                        the doctor's availability.</small>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle"></i> Confirm Booking
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROFILE TAB -->
+                <div class="tab-pane fade" id="profile" role="tabpanel">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-person"></i> My Profile</h5>
+                        </div>
+                        <div class="card-body">
+                            <form @submit.prevent="updateProfile">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Name *</label>
+                                        <input v-model="profile.Name" type="text" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Age *</label>
+                                        <input v-model="profile.Age" type="number" class="form-control" min="0"
+                                            max="150" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Gender *</label>
+                                        <select v-model="profile.Gender" class="form-select" required>
+                                            <option value="">Select</option>
+                                            <option>Male</option>
+                                            <option>Female</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Contact *</label>
+                                        <input v-model="profile.Contact" type="text" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Address</label>
+                                        <input v-model="profile.Address" type="text" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MEDICAL HISTORY TAB -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-file-medical"></i> My Medical History</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div v-if="medicalHistory.length === 0" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-2">No medical history available</p>
+                            </div>
+                            <div v-else class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Doctor</th>
+                                            <th>Specialization</th>
+                                            <th>Tests</th>
+                                            <th>Medicine</th>
+                                            <th>Instructions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="h in medicalHistory" :key="h.HistoryID">
+                                            <td>{{ h.AppointmentDate }}</td>
+                                            <td>{{ h.DoctorName }}</td>
+                                            <td>{{ h.Specialization }}</td>
+                                            <td>{{ h.Tests || '-' }}</td>
+                                            <td>{{ h.MedicineName || '-' }}</td>
+                                            <td>{{ h.Instructions || '-' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userName: '',
+                    patientId: null,
+                    appointments: [],
+                    medicalHistory: [],
+                    summary: {
+                        total_appointments: 0,
+                        upcoming_appointments: 0,
+                        completed_appointments: 0
+                    },
+                    profile: {
+                        PatientID: null,
+                        Name: '',
+                        Age: '',
+                        Gender: '',
+                        Contact: '',
+                        Address: ''
+                    },
+                    doctorSearchQuery: '',
+                    allDoctors: [],
+                    searchedDoctors: [],
+                    selectedDoctor: null,
+                    selectedDoctorAvailability: [],
+                    bookingForm: {
+                        date: '',
+                        time: ''
+                    }
+                };
+            },
+
+            async mounted() {
+                // Check authentication
+                if (!Session.requireAuth() || !Session.requireRole('Patient')) return;
+
+                const user = Session.get();
+                this.userName = user.name || 'Patient';
+                this.patientId = user.referenceId;
+
+                await this.loadSummary();
+                await this.loadAppointments();
+                await this.loadAllDoctors();
+                await this.loadProfile();
+            },
+
+            methods: {
+                async loadSummary() {
+                    try {
+                        const res = await API.get(`/patient/dashboard/${this.patientId}/summary`);
+                        this.summary = res.data;
+                    } catch (err) {
+                        console.error('Error loading summary:', err);
+                    }
+                },
+
+                async loadAppointments() {
+                    try {
+                        const res = await API.get(`/patient/appointments/${this.patientId}`);
+                        this.appointments = res.data;
+                    } catch (err) {
+                        console.error('Error loading appointments:', err);
+                        alert('Failed to load appointments');
+                    }
+                },
+
+                async cancelAppointment(appointmentId) {
+                    if (!confirm('Are you sure you want to cancel this appointment?')) return;
+
+                    try {
+                        await API.put(`/patient/appointments/${appointmentId}/cancel`);
+                        alert('Appointment cancelled successfully!');
+                        await this.loadAppointments();
+                        await this.loadSummary();
+                    } catch (err) {
+                        console.error('Error cancelling appointment:', err);
+                        alert('Failed to cancel appointment');
+                    }
+                },
+
+                async loadAllDoctors() {
+                    try {
+                        const res = await API.get('/admin/doctors');
+                        this.allDoctors = res.data.filter(d => d.IsBlacklisted === 0);
+                        this.searchedDoctors = this.allDoctors;
+                    } catch (err) {
+                        console.error('Error loading doctors:', err);
+                    }
+                },
+
+                searchDoctors() {
+                    if (!this.doctorSearchQuery.trim()) {
+                        this.searchedDoctors = this.allDoctors;
+                        return;
+                    }
+                    const query = this.doctorSearchQuery.toLowerCase();
+                    this.searchedDoctors = this.allDoctors.filter(d =>
+                        d.Name.toLowerCase().includes(query) ||
+                        d.Specialization.toLowerCase().includes(query)
+                    );
+                },
+
+                async selectDoctor(doctor) {
+                    this.selectedDoctor = doctor;
+                    this.bookingForm = { date: '', time: '' };
+
+                    // Load doctor availability
+                    try {
+                        const res = await API.get(`/patient/doctor/${doctor.DoctorID}`);
+                        this.selectedDoctorAvailability = res.data.Availability || [];
+                    } catch (err) {
+                        console.error('Error loading doctor availability:', err);
+                        this.selectedDoctorAvailability = [];
+                    }
+                },
+
+                async bookAppointment() {
+                    const dateTime = `${this.bookingForm.date} ${this.bookingForm.time}`;
+
+                    try {
+                        await API.post('/patient/appointments/book', {
+                            patient_id: this.patientId,
+                            doctor_id: this.selectedDoctor.DoctorID,
+                            date: dateTime
+                        });
+
+                        alert('Appointment booked successfully!');
+                        this.selectedDoctor = null;
+                        this.bookingForm = { date: '', time: '' };
+                        await this.loadAppointments();
+                        await this.loadSummary();
+
+                        // Switch to appointments tab
+                        document.getElementById('appointments-tab').click();
+                    } catch (err) {
+                        console.error('Error booking appointment:', err);
+                        const errorMsg = err.response?.data?.error || 'Failed to book appointment';
+
+                        if (err.response?.data?.available_slots) {
+                            const slots = err.response.data.available_slots.map(s =>
+                                `${s.StartTime} - ${s.EndTime}`
+                            ).join(', ');
+                            alert(`${errorMsg}\nAvailable slots: ${slots}`);
+                        } else {
+                            alert(errorMsg);
+                        }
+                    }
+                },
+
+                async loadProfile() {
+                    try {
+                        const res = await API.get(`/patient/profile/${this.patientId}`);
+                        this.profile = res.data;
+                    } catch (err) {
+                        console.error('Error loading profile:', err);
+                        alert('Failed to load profile');
+                    }
+                },
+
+                async updateProfile() {
+                    try {
+                        await API.put(`/patient/profile/${this.patientId}`, {
+                            name: this.profile.Name,
+                            age: this.profile.Age,
+                            gender: this.profile.Gender,
+                            contact: this.profile.Contact,
+                            address: this.profile.Address || ''
+                        });
+                        alert('Profile updated successfully!');
+                        this.userName = this.profile.Name;
+                        await this.loadProfile();
+                    } catch (err) {
+                        console.error('Error updating profile:', err);
+                        const errorMsg = err.response?.data?.error || 'Failed to update profile';
+                        alert(errorMsg);
+                    }
+                },
+
+                async loadMedicalHistory() {
+                    try {
+                        const res = await API.get(`/patient/history/${this.patientId}`);
+                        this.medicalHistory = res.data;
+                    } catch (err) {
+                        console.error('Error loading medical history:', err);
+                        alert('Failed to load medical history');
+                    }
+                },
+
+                goToProfile() {
+                    document.getElementById('profile-tab').click();
+                },
+
+                logout() {
+                    Session.logout();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
